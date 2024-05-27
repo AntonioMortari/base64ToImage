@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
 const { v4 } = require('uuid');
+const Jimp = require('jimp');
 
 const server = express();
 
@@ -12,7 +13,7 @@ server.use(cors({
     origin: '*'
 }));
 
-server.post('/file', (req, res) => {
+server.post('/file', async (req, res) => {
     const { upload1, upload2 } = req.body;
 
     const typeFile1 = upload1.split('/')[1].split(';')[0];
@@ -25,19 +26,23 @@ server.post('/file', (req, res) => {
     const buffer1 = Buffer.from(upload1, 'base64');
     const buffer2 = Buffer.from(upload2, 'base64');
 
-    fs.writeFileSync(pathToFile1, buffer1, (err) => {
-        if (err) {
-            return res.send('Erro');
-        }
-    });
+    try {
+        const image1 = await Jimp.read(buffer1);
+        await image1
+        .quality(50)
+        .resize(256, Jimp.AUTO)
+        .writeAsync(pathToFile1);
 
-    fs.writeFileSync(pathToFile2, buffer2, (err) => {
-        if (err) {
-            return res.send('Erro');
-        }
-    });
+        const image2 = await Jimp.read(buffer2);
+        await image2
+            .quality(50)
+            .resize(256, Jimp.AUTO)
+            .writeAsync(pathToFile2);
 
-    return res.send('Sucesso!');
+        return res.send('Sucesso!');
+    } catch (error) {
+        res.send(`Erro ${error}`);
+    }
 });
 
 module.exports = { server };
